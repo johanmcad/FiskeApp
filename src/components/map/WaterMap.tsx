@@ -18,6 +18,20 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 })
 
+// Skapa en blå ikon för båtramper
+const boatRampIcon = L.icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+      <path fill="#2563eb" stroke="#1e40af" stroke-width="1.5" d="M12.5 0C5.6 0 0 5.6 0 12.5c0 8.4 12.5 28.5 12.5 28.5S25 20.9 25 12.5C25 5.6 19.4 0 12.5 0z"/>
+      <circle cx="12.5" cy="12.5" r="7" fill="white"/>
+      <path fill="#2563eb" d="M12.5 6 L9 10 L11 10 L11 14 L14 14 L14 10 L16 10 Z"/>
+    </svg>
+  `),
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+})
+
 L.Marker.prototype.options.icon = defaultIcon
 
 interface MapMarker {
@@ -28,11 +42,23 @@ interface MapMarker {
   popupHtml?: string
 }
 
+export interface BoatRampMarker {
+  id: string
+  position: [number, number]
+  name: string
+  waterName?: string
+  parking?: boolean
+  fee?: boolean
+  description?: string
+}
+
 interface WaterMapProps {
   center?: [number, number]
   zoom?: number
   markers?: MapMarker[]
+  boatRamps?: BoatRampMarker[]
   onMarkerClick?: (id: string) => void
+  onBoatRampClick?: (id: string) => void
   className?: string
   showDepthChart?: boolean
   depthChartType?: 'nautical' | 'sonar'
@@ -42,7 +68,9 @@ export function WaterMap({
   center = [62.5, 17.5],
   zoom = 5,
   markers = [],
+  boatRamps = [],
   onMarkerClick,
+  onBoatRampClick,
   className = '',
   showDepthChart = false,
   depthChartType = 'sonar',
@@ -144,7 +172,7 @@ export function WaterMap({
       }
     })
 
-    // Lägg till nya markers
+    // Lägg till nya markers (fångster, fiskevatten, etc.)
     markers.forEach((marker) => {
       const popupContent = marker.popupHtml ||
         `<b>${marker.title}</b>${marker.description ? `<br/>${marker.description}` : ''}`
@@ -157,7 +185,31 @@ export function WaterMap({
         m.on('click', () => onMarkerClick(marker.id))
       }
     })
-  }, [markers, onMarkerClick])
+
+    // Lägg till båtramper med egen ikon
+    boatRamps.forEach((ramp) => {
+      const popupContent = `
+        <div style="min-width: 200px;">
+          <b>${ramp.name}</b>
+          ${ramp.waterName ? `<br/><small>${ramp.waterName}</small>` : ''}
+          ${ramp.description ? `<br/><br/>${ramp.description}` : ''}
+          <br/><br/>
+          <div style="display: flex; gap: 8px; font-size: 12px;">
+            ${ramp.parking ? '<span>🅿️ Parkering</span>' : ''}
+            ${ramp.fee ? '<span>💰 Avgift</span>' : '<span>🆓 Gratis</span>'}
+          </div>
+        </div>
+      `
+
+      const m = L.marker(ramp.position, { icon: boatRampIcon })
+        .addTo(mapRef.current!)
+        .bindPopup(popupContent, { maxWidth: 300 })
+
+      if (onBoatRampClick) {
+        m.on('click', () => onBoatRampClick(ramp.id))
+      }
+    })
+  }, [markers, boatRamps, onMarkerClick, onBoatRampClick])
 
   return (
     <div className="relative h-full w-full">

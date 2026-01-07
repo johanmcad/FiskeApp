@@ -1,8 +1,9 @@
 import { Routes, Route, NavLink } from 'react-router-dom'
 import { CatchLogPage } from '@/pages/CatchLog'
 import { WaterMapPage } from '@/pages/WaterMapPage'
+import { BoatRampsPage } from '@/pages/BoatRampsPage'
 import { ProfilePage } from '@/pages/Profile'
-import { Fish, Map, User } from 'lucide-react'
+import { Fish, Map, User, Anchor } from 'lucide-react'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<CatchLogPage />} />
           <Route path="/map" element={<WaterMapPage />} />
+          <Route path="/boat-ramps" element={<BoatRampsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </main>
@@ -53,6 +55,20 @@ function App() {
           >
             <Map className="w-6 h-6" />
             <span className="text-xs mt-1">Kartor</span>
+          </NavLink>
+
+          <NavLink
+            to="/boat-ramps"
+            className={({ isActive }) =>
+              `flex flex-col items-center py-1 px-4 rounded-lg transition-colors ${
+                isActive
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`
+            }
+          >
+            <Anchor className="w-6 h-6" />
+            <span className="text-xs mt-1">Ramper</span>
           </NavLink>
 
           <NavLink
