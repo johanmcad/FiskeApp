@@ -162,8 +162,8 @@ export function WaterMapPage() {
 
         // Skapa HTML för popup med bild
         const popupHtml = `
-          <div style="min-width: 200px;">
-            ${c.photoUrl ? `<img src="${c.photoUrl}" alt="${speciesName}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 8px;" />` : ''}
+          <div style="min-width: 200px; max-width: 280px;">
+            ${c.photoUrl ? `<div style="background: #f3f4f6; border-radius: 4px; margin-bottom: 8px;"><img src="${c.photoUrl}" alt="${speciesName}" style="width: 100%; max-height: 180px; object-fit: contain; border-radius: 4px;" /></div>` : ''}
             <div style="font-weight: 600; font-size: 14px;">${speciesName}</div>
             <div style="font-size: 12px; color: #666; margin-top: 2px;">${dateStr}</div>
             ${c.waterName ? `<div style="font-size: 12px; color: #666;">${c.waterName}</div>` : ''}
