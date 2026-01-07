@@ -46,11 +46,13 @@ export function CatchList({ catches, onDelete, loading, showOwner, isOwnCatch }:
           <Card key={c.id} className="relative overflow-hidden" padding="none">
             {/* Bild */}
             {c.photoUrl && (
-              <img
-                src={c.photoUrl}
-                alt={species?.swedishName || c.species}
-                className="w-full h-48 object-cover"
-              />
+              <div className="bg-gray-100">
+                <img
+                  src={c.photoUrl}
+                  alt={species?.swedishName || c.species}
+                  className="w-full h-48 object-contain"
+                />
+              </div>
             )}
 
             <div className="p-4">
