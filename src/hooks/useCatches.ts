@@ -21,6 +21,7 @@ interface UseCatchesResult {
   loading: boolean
   error: string | null
   addCatch: (data: CatchFormData, weather?: { temp: number; wind: number; conditions: string; pressure: number }) => Promise<Catch | null>
+  updateCatch: (id: string, data: CatchFormData, weather?: { temp: number; wind: number; conditions: string; pressure: number }) => Promise<Catch | null>
   deleteCatch: (id: string) => Promise<boolean>
   refresh: () => Promise<void>
 }
@@ -119,6 +120,69 @@ export function useCatches(): UseCatchesResult {
     }
   }
 
+  const updateCatch = async (
+    id: string,
+    data: CatchFormData,
+    weather?: { temp: number; wind: number; conditions: string; pressure: number }
+  ): Promise<Catch | null> => {
+    try {
+      const existingCatch = catches.find(c => c.id === id)
+      if (!existingCatch) {
+        throw new Error('Fångst hittades inte')
+      }
+
+      // Ladda upp ny bild om det finns en
+      let photoUrl: string | null = existingCatch.photoUrl
+      if (data.photo && user) {
+        photoUrl = await uploadCatchImage(data.photo, user.id)
+      }
+
+      const updatedCatch: Catch = {
+        ...existingCatch,
+        species: data.species,
+        lengthCm: data.lengthCm,
+        weightGrams: data.weightGrams,
+        caughtAt: data.caughtAt,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        photoUrl,
+        weatherTemp: weather?.temp ?? null,
+        weatherWind: weather?.wind ?? null,
+        weatherConditions: weather?.conditions ?? null,
+        weatherPressure: weather?.pressure ?? null,
+        waterName: data.waterName || null,
+        notes: data.notes || null,
+        isPublic: data.isPublic,
+      }
+
+      if (isConfigured && user) {
+        // Uppdatera i Supabase
+        const { data: updated, error: updateError } = await supabase
+          .from('catches')
+          .update(mapToDb(updatedCatch))
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        if (updateError) throw updateError
+
+        const savedCatch = mapFromDb(updated)
+        setCatches(prev => prev.map(c => c.id === id ? savedCatch : c))
+        return savedCatch
+      } else {
+        // Uppdatera lokalt
+        const updated = catches.map(c => c.id === id ? updatedCatch : c)
+        saveLocalCatches(updated)
+        setCatches(updated)
+        return updatedCatch
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunde inte uppdatera fångst')
+      return null
+    }
+  }
+
   const deleteCatch = async (id: string): Promise<boolean> => {
     try {
       if (isConfigured && user) {
@@ -143,7 +207,7 @@ export function useCatches(): UseCatchesResult {
     }
   }
 
-  return { catches, loading, error, addCatch, deleteCatch, refresh }
+  return { catches, loading, error, addCatch, updateCatch, deleteCatch, refresh }
 }
 
 // Mappning mellan databas-format och TypeScript-format

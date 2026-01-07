@@ -22,7 +22,9 @@
       "WebFetch(domain:fiskekartan.se)",
       "WebFetch(domain:viss.lansstyrelsen.se)",
       "WebFetch(domain:www.smhi.se)",
-      "WebFetch(domain:opendata.smhi.se)"
+      "WebFetch(domain:opendata.smhi.se)",
+      "WebFetch(domain:webapiv2.navionics.com)",
+      "WebFetch(domain:developer.garmin.com)"
     ]
   }
 }

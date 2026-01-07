@@ -3,13 +3,14 @@ import { WaterMap } from '@/components/map/WaterMap'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Search, MapPin, ExternalLink, Navigation, Fish, Map, Ticket } from 'lucide-react'
+import { Search, MapPin, ExternalLink, Navigation, Fish, Map, Ticket, Waves } from 'lucide-react'
 import { usePublicCatches } from '@/hooks/usePublicCatches'
 import { useCatches } from '@/hooks/useCatches'
 import { useAuth } from '@/hooks/useAuth'
 import { fishSpecies } from '@/data/fishSpecies'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { isNavionicsConfigured } from '@/lib/navionics'
 
 // Populära fiskevatten i Sverige
 const POPULAR_WATERS = [
@@ -70,10 +71,13 @@ export function WaterMapPage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([62.5, 17.5])
   const [mapZoom, setMapZoom] = useState(5)
   const [viewMode, setViewMode] = useState<ViewMode>('catches')
+  const [showDepthChart, setShowDepthChart] = useState(false)
+  const [depthChartType, setDepthChartType] = useState<'nautical' | 'sonar'>('sonar')
 
   const { catches: publicCatches } = usePublicCatches()
   const { catches: myCatches } = useCatches()
   const { isConfigured } = useAuth()
+  const navionicsAvailable = isNavionicsConfigured()
 
   const filteredWaters = POPULAR_WATERS.filter(w =>
     w.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -229,8 +233,54 @@ export function WaterMapPage() {
           zoom={mapZoom}
           markers={displayMarkers}
           onMarkerClick={viewMode === 'waters' ? handleWaterMarkerClick : undefined}
+          showDepthChart={showDepthChart}
+          depthChartType={depthChartType}
           className="h-full"
         />
+
+        {/* Djupkarta-toggle */}
+        {navionicsAvailable && (
+          <div className="absolute top-4 right-4 z-[1000]">
+            <div className="bg-white rounded-lg shadow-lg p-1 flex flex-col gap-1">
+              <button
+                onClick={() => setShowDepthChart(!showDepthChart)}
+                className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  showDepthChart
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                title="Visa djupkarta"
+              >
+                <Waves className="w-4 h-4" />
+                Djupkarta
+              </button>
+              {showDepthChart && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setDepthChartType('sonar')}
+                    className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      depthChartType === 'sonar'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Sonar
+                  </button>
+                  <button
+                    onClick={() => setDepthChartType('nautical')}
+                    className={`flex-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      depthChartType === 'nautical'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Sjökort
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Info-panel för vatten */}
         {viewMode === 'waters' && selectedWater && (

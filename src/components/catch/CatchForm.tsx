@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CatchFormData, WeatherData } from '@/types'
+import { CatchFormData, WeatherData, Catch } from '@/types'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
@@ -12,26 +12,27 @@ import { MapPin, Loader2, Camera, ImagePlus, X } from 'lucide-react'
 interface CatchFormProps {
   onSubmit: (data: CatchFormData, weather?: WeatherData) => Promise<void>
   onCancel?: () => void
+  initialData?: Catch | null
 }
 
-export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
+export function CatchForm({ onSubmit, onCancel, initialData }: CatchFormProps) {
   const [loading, setLoading] = useState(false)
   const { location, loading: geoLoading, refresh: refreshLocation } = useGeolocation()
   const { weather, loading: weatherLoading, refresh: refreshWeather } = useWeather()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.photoUrl || null)
 
   const [formData, setFormData] = useState<CatchFormData>({
-    species: '',
-    lengthCm: null,
-    weightGrams: null,
-    caughtAt: new Date().toISOString().slice(0, 16),
-    latitude: null,
-    longitude: null,
-    waterName: '',
-    notes: '',
-    isPublic: true,
+    species: initialData?.species || '',
+    lengthCm: initialData?.lengthCm || null,
+    weightGrams: initialData?.weightGrams || null,
+    caughtAt: initialData?.caughtAt.slice(0, 16) || new Date().toISOString().slice(0, 16),
+    latitude: initialData?.latitude || null,
+    longitude: initialData?.longitude || null,
+    waterName: initialData?.waterName || '',
+    notes: initialData?.notes || '',
+    isPublic: initialData?.isPublic ?? true,
     photo: null,
   })
 
@@ -300,10 +301,10 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Sparar...
+              {initialData ? 'Uppdaterar...' : 'Sparar...'}
             </>
           ) : (
-            'Spara fångst'
+            initialData ? 'Uppdatera fångst' : 'Spara fångst'
           )}
         </Button>
       </div>

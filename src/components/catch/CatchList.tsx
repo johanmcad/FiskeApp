@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/Button'
 import { fishSpecies } from '@/data/fishSpecies'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Trash2, MapPin, Cloud, Scale, Ruler, Globe, Lock } from 'lucide-react'
+import { Trash2, MapPin, Cloud, Scale, Ruler, Globe, Lock, Edit } from 'lucide-react'
 
 interface CatchListProps {
   catches: Catch[]
   onDelete?: (id: string) => void
+  onEdit?: (catch_: Catch) => void
   loading?: boolean
   showOwner?: boolean
   isOwnCatch?: (userId: string) => boolean
 }
 
-export function CatchList({ catches, onDelete, loading, showOwner, isOwnCatch }: CatchListProps) {
+export function CatchList({ catches, onDelete, onEdit, loading, showOwner, isOwnCatch }: CatchListProps) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -112,15 +113,29 @@ export function CatchList({ catches, onDelete, loading, showOwner, isOwnCatch }:
                   )}
                 </div>
 
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(c.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                {(onEdit || onDelete) && (
+                  <div className="flex gap-2">
+                    {onEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(c)}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(c.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

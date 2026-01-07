@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { loadNavionicsScript, createNavionicsOverlay, isNavionicsConfigured } from '@/lib/navionics'
 
 // Fix för Leaflet marker-ikoner
 import iconUrl from 'leaflet/dist/images/marker-icon.png'
@@ -33,6 +34,8 @@ interface WaterMapProps {
   markers?: MapMarker[]
   onMarkerClick?: (id: string) => void
   className?: string
+  showDepthChart?: boolean
+  depthChartType?: 'nautical' | 'sonar'
 }
 
 export function WaterMap({
@@ -41,9 +44,14 @@ export function WaterMap({
   markers = [],
   onMarkerClick,
   className = '',
+  showDepthChart = false,
+  depthChartType = 'sonar',
 }: WaterMapProps) {
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const navionicsOverlayRef = useRef<ReturnType<typeof createNavionicsOverlay> | null>(null)
+  const osmLayerRef = useRef<L.TileLayer | null>(null)
+  const [depthChartError, setDepthChartError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -51,13 +59,17 @@ export function WaterMap({
     // Skapa kartan
     mapRef.current = L.map(containerRef.current).setView(center, zoom)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Lägg till OpenStreetMap som baslager
+    osmLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(mapRef.current)
+    })
+    osmLayerRef.current.addTo(mapRef.current)
 
     return () => {
       mapRef.current?.remove()
       mapRef.current = null
+      navionicsOverlayRef.current = null
+      osmLayerRef.current = null
     }
   }, [])
 
@@ -67,6 +79,59 @@ export function WaterMap({
       mapRef.current.setView(center, zoom)
     }
   }, [center, zoom])
+
+  // Hantera djupkarta
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    const toggleDepthChart = async () => {
+      if (showDepthChart && isNavionicsConfigured()) {
+        try {
+          setDepthChartError(null)
+
+          // Ladda Navionics script om det inte redan är laddat
+          await loadNavionicsScript()
+
+          // Ta bort OSM-lagret
+          if (osmLayerRef.current) {
+            mapRef.current?.removeLayer(osmLayerRef.current)
+          }
+
+          // Ta bort gammal overlay om den finns
+          if (navionicsOverlayRef.current) {
+            navionicsOverlayRef.current.remove()
+          }
+
+          // Skapa och lägg till Navionics overlay
+          navionicsOverlayRef.current = createNavionicsOverlay(depthChartType)
+          navionicsOverlayRef.current.addTo(mapRef.current!)
+        } catch (error) {
+          console.error('Kunde inte ladda djupkarta:', error)
+          setDepthChartError(error instanceof Error ? error.message : 'Kunde inte ladda djupkarta')
+
+          // Återställ OSM-lagret vid fel
+          if (osmLayerRef.current && mapRef.current) {
+            osmLayerRef.current.addTo(mapRef.current)
+          }
+        }
+      } else {
+        // Ta bort Navionics overlay
+        if (navionicsOverlayRef.current) {
+          navionicsOverlayRef.current.remove()
+          navionicsOverlayRef.current = null
+        }
+
+        // Lägg tillbaka OSM-lagret
+        if (osmLayerRef.current && mapRef.current) {
+          if (!mapRef.current.hasLayer(osmLayerRef.current)) {
+            osmLayerRef.current.addTo(mapRef.current)
+          }
+        }
+      }
+    }
+
+    toggleDepthChart()
+  }, [showDepthChart, depthChartType])
 
   // Uppdatera markers
   useEffect(() => {
@@ -95,10 +160,17 @@ export function WaterMap({
   }, [markers, onMarkerClick])
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{ height: '100%', width: '100%', minHeight: '300px' }}
-    />
+    <div className="relative h-full w-full">
+      <div
+        ref={containerRef}
+        className={className}
+        style={{ height: '100%', width: '100%', minHeight: '300px' }}
+      />
+      {depthChartError && (
+        <div className="absolute top-2 left-2 right-2 bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded text-sm z-[1000]">
+          {depthChartError}
+        </div>
+      )}
+    </div>
   )
 }
