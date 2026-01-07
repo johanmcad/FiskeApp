@@ -75,15 +75,14 @@ export function BoatRampsPage() {
     })),
   ]
 
-  // Beräkna kartcenter baserat på användarens position eller Sverige
-  // Om vi har OSM-ramper, centrera på första rampen istället
-  const mapCenter: [number, number] = osmRamps.length > 0
-    ? [osmRamps[0].lat, osmRamps[0].lon]
-    : location
-    ? [location.latitude, location.longitude]
-    : [59.3, 18.0] // Stockholm som standard
+  // Sätt kartcenter endast en gång vid initial render
+  // Uppdatera inte kartan när OSM-data laddas (låt användaren behålla sin vy)
+  const [mapCenter] = useState<[number, number]>(() => {
+    if (location) return [location.latitude, location.longitude]
+    return [59.3, 18.0] // Stockholm som standard
+  })
 
-  const mapZoom = osmRamps.length > 0 || location ? 10 : 6
+  const [mapZoom] = useState(() => (location ? 10 : 6))
 
   return (
     <div className="h-full flex flex-col">
