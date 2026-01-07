@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Catch, CatchFormData } from '@/types'
 import { supabase } from '@/lib/supabase'
+import { uploadCatchImage } from '@/lib/storage'
 import { useAuth } from './useAuth'
 
 // Lokal lagring för demo utan Supabase
@@ -66,6 +67,12 @@ export function useCatches(): UseCatchesResult {
     weather?: { temp: number; wind: number; conditions: string; pressure: number }
   ): Promise<Catch | null> => {
     try {
+      // Ladda upp bild om det finns en
+      let photoUrl: string | null = null
+      if (data.photo && user) {
+        photoUrl = await uploadCatchImage(data.photo, user.id)
+      }
+
       const newCatch: Catch = {
         id: crypto.randomUUID(),
         userId: user?.id || 'local',
@@ -75,7 +82,7 @@ export function useCatches(): UseCatchesResult {
         caughtAt: data.caughtAt,
         latitude: data.latitude,
         longitude: data.longitude,
-        photoUrl: null, // TODO: Hantera bilduppladdning
+        photoUrl,
         weatherTemp: weather?.temp ?? null,
         weatherWind: weather?.wind ?? null,
         weatherConditions: weather?.conditions ?? null,

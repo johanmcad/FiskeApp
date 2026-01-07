@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CatchFormData, WeatherData } from '@/types'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -7,7 +7,7 @@ import { SpeciesSelect } from './SpeciesSelect'
 import { WeatherDisplay } from '@/components/weather/WeatherDisplay'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useWeather } from '@/hooks/useWeather'
-import { MapPin, Loader2 } from 'lucide-react'
+import { MapPin, Loader2, Camera, X } from 'lucide-react'
 
 interface CatchFormProps {
   onSubmit: (data: CatchFormData, weather?: WeatherData) => Promise<void>
@@ -18,6 +18,8 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
   const [loading, setLoading] = useState(false)
   const { location, loading: geoLoading, refresh: refreshLocation } = useGeolocation()
   const { weather, loading: weatherLoading, refresh: refreshWeather } = useWeather()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<CatchFormData>({
     species: '',
@@ -49,6 +51,39 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
 
   const handleGetLocation = async () => {
     await refreshLocation()
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validera filtyp
+      if (!file.type.startsWith('image/')) {
+        alert('Välj en bildfil')
+        return
+      }
+      // Validera storlek (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Bilden får max vara 5MB')
+        return
+      }
+
+      setFormData(prev => ({ ...prev, photo: file }))
+
+      // Skapa preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, photo: null }))
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const validate = (): boolean => {
@@ -126,6 +161,47 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
         value={formData.waterName}
         onChange={(e) => setFormData(prev => ({ ...prev, waterName: e.target.value }))}
       />
+
+      {/* Bilduppladdning */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Foto
+        </label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+
+        {imagePreview ? (
+          <div className="relative">
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="w-full h-48 object-cover rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
+          >
+            <Camera className="w-8 h-8" />
+            <span className="text-sm">Lägg till foto</span>
+          </button>
+        )}
+      </div>
 
       {/* Plats */}
       <Card padding="sm" className="bg-gray-50">
