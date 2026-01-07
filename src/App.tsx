@@ -1,8 +1,20 @@
+import { Suspense, lazy } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { CatchLogPage } from '@/pages/CatchLog'
-import { WaterMapPage } from '@/pages/WaterMapPage'
-import { ProfilePage } from '@/pages/Profile'
-import { Fish, Map, User } from 'lucide-react'
+import { Fish, Map, User, Loader2 } from 'lucide-react'
+
+// Lazy load sidor för code-splitting
+const CatchLogPage = lazy(() => import('@/pages/CatchLog').then(m => ({ default: m.CatchLogPage })))
+const WaterMapPage = lazy(() => import('@/pages/WaterMapPage').then(m => ({ default: m.WaterMapPage })))
+const ProfilePage = lazy(() => import('@/pages/Profile').then(m => ({ default: m.ProfilePage })))
+
+// Laddningsindikator
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+    </div>
+  )
+}
 
 function App() {
   return (
@@ -17,11 +29,13 @@ function App() {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto pb-16">
-        <Routes>
-          <Route path="/" element={<CatchLogPage />} />
-          <Route path="/map" element={<WaterMapPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<CatchLogPage />} />
+            <Route path="/map" element={<WaterMapPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Bottom navigation */}

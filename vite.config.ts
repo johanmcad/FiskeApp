@@ -9,4 +9,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separera stora bibliotek
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-leaflet': ['leaflet'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-date': ['date-fns'],
+        },
+      },
+    },
+  },
 })
