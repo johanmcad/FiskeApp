@@ -55,6 +55,11 @@ export function LocationPicker({
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map)
 
+    // Fix för att kartan ska rendera korrekt
+    setTimeout(() => {
+      map.invalidateSize()
+    }, 100)
+
     // Lägg till befintlig markör om position finns
     if (latitude && longitude) {
       markerRef.current = L.marker([latitude, longitude]).addTo(map)
@@ -105,7 +110,8 @@ export function LocationPicker({
     <div className={className}>
       <div
         ref={containerRef}
-        className="w-full h-64 rounded-lg border border-gray-300"
+        className="w-full rounded-lg border border-gray-300"
+        style={{ height: '300px' }}
       />
       <p className="text-xs text-gray-500 mt-1">
         Klicka på kartan för att välja position
