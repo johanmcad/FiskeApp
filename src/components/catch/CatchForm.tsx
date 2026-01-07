@@ -28,7 +28,7 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
     longitude: null,
     waterName: '',
     notes: '',
-    isPublic: false,
+    isPublic: true,
     photo: null,
   })
 

@@ -10,7 +10,12 @@
       "Bash(npm run dev:*)",
       "Bash(cat:*)",
       "Bash(git reset:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: FiskeApp - Sportfiske-app\n\nFeatures:\n- Catch registration with 60+ fish species\n- Automatic weather data from SMHI API\n- GPS location tracking\n- Interactive map with Swedish lakes\n- Supabase authentication and cloud storage\n- Responsive design with Tailwind CSS\n\nTech stack: React, TypeScript, Vite, Supabase, Leaflet\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
