@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CatchFormData, WeatherData } from '@/types'
+import { CatchFormData, WeatherData, Catch } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { CatchForm } from '@/components/catch/CatchForm'
@@ -13,22 +13,38 @@ type Tab = 'mine' | 'public'
 
 export function CatchLogPage() {
   const [showForm, setShowForm] = useState(false)
+  const [editingCatch, setEditingCatch] = useState<Catch | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('mine')
-  const { catches, loading, addCatch, deleteCatch } = useCatches()
+  const { catches, loading, addCatch, updateCatch, deleteCatch } = useCatches()
   const { catches: publicCatches, loading: publicLoading } = usePublicCatches()
   const { user, isConfigured } = useAuth()
 
   const handleSubmit = async (data: CatchFormData, weather?: WeatherData) => {
-    const result = await addCatch(data, weather ? {
+    const weatherData = weather ? {
       temp: weather.temperature,
       wind: weather.windSpeed,
       conditions: weather.conditions,
       pressure: weather.pressure,
-    } : undefined)
+    } : undefined
+
+    const result = editingCatch
+      ? await updateCatch(editingCatch.id, data, weatherData)
+      : await addCatch(data, weatherData)
 
     if (result) {
       setShowForm(false)
+      setEditingCatch(null)
     }
+  }
+
+  const handleEdit = (catch_: Catch) => {
+    setEditingCatch(catch_)
+    setShowForm(true)
+  }
+
+  const handleCancel = () => {
+    setShowForm(false)
+    setEditingCatch(null)
   }
 
   const handleDelete = async (id: string) => {
@@ -95,10 +111,13 @@ export function CatchLogPage() {
 
       {showForm && activeTab === 'mine' && (
         <Card className="mb-4">
-          <h2 className="text-lg font-semibold mb-4">Registrera ny fångst</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            {editingCatch ? 'Redigera fångst' : 'Registrera ny fångst'}
+          </h2>
           <CatchForm
             onSubmit={handleSubmit}
-            onCancel={() => setShowForm(false)}
+            onCancel={handleCancel}
+            initialData={editingCatch}
           />
         </Card>
       )}
@@ -113,6 +132,7 @@ export function CatchLogPage() {
         <CatchList
           catches={displayCatches}
           onDelete={activeTab === 'mine' ? handleDelete : undefined}
+          onEdit={activeTab === 'mine' ? handleEdit : undefined}
           loading={displayLoading}
           showOwner={activeTab === 'public'}
           isOwnCatch={isOwnCatch}
