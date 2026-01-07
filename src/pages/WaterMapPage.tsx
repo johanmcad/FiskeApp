@@ -8,7 +8,6 @@ import { usePublicCatches } from '@/hooks/usePublicCatches'
 import { useCatches } from '@/hooks/useCatches'
 import { useBoatRamps } from '@/hooks/useBoatRamps'
 import { useAuth } from '@/hooks/useAuth'
-import { useGeolocation } from '@/hooks/useGeolocation'
 import { fetchOSMBoatRampsNearby, OSMBoatRamp } from '@/lib/osm'
 import { BoatRampForm } from '@/components/boat-ramps/BoatRampForm'
 import { fishSpecies } from '@/data/fishSpecies'
@@ -86,7 +85,6 @@ export function WaterMapPage() {
   const { catches: myCatches } = useCatches()
   const { boatRamps, addBoatRamp } = useBoatRamps()
   const { isConfigured } = useAuth()
-  const { location } = useGeolocation()
   const navionicsAvailable = isNavionicsConfigured()
 
   const filteredWaters = POPULAR_WATERS.filter(w =>
@@ -111,13 +109,14 @@ export function WaterMapPage() {
     window.open(`https://www.ifiske.se/index.php/fiskekortswebshop?search=${encodeURIComponent(name)}`, '_blank')
   }
 
-  // Hämta OSM-båtramper
+  // Hämta OSM-båtramper baserat på kartans nuvarande position
   const fetchOSMData = async () => {
     setLoadingOSM(true)
     setOsmError(null)
     try {
-      const lat = location?.latitude || 59.3
-      const lon = location?.longitude || 18.0
+      // Använd kartans nuvarande center istället för GPS-position
+      const lat = mapCenter[0]
+      const lon = mapCenter[1]
       const radiusKm = 5
 
       console.log(`Fetching boat ramps near ${lat}, ${lon} with radius ${radiusKm}km`)
@@ -488,7 +487,7 @@ export function WaterMapPage() {
                     onClick={fetchOSMData}
                     className="w-full mt-2"
                   >
-                    Ladda OSM-data (5km radie)
+                    Ladda OSM-data för detta område (5km)
                   </Button>
                 ) : null}
               </Card>
