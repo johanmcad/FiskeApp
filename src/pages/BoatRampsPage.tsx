@@ -15,28 +15,33 @@ export function BoatRampsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [osmRamps, setOsmRamps] = useState<OSMBoatRamp[]>([])
   const [loadingOSM, setLoadingOSM] = useState(false)
+  const [osmError, setOsmError] = useState<string | null>(null)
   const { boatRamps, loading, addBoatRamp } = useBoatRamps()
   const { location } = useGeolocation()
 
   // Hämta OSM-båtramper när komponenten laddas
-  useEffect(() => {
-    const fetchOSMData = async () => {
-      setLoadingOSM(true)
-      try {
-        // Om vi har användarens position, hämta nearby. Annars hämta för hela Sverige (kan ta tid)
-        const lat = location?.latitude || 62.5
-        const lon = location?.longitude || 17.5
-        const radiusKm = location ? 100 : 500 // Större radie om vi inte har exakt position
+  const fetchOSMData = async () => {
+    setLoadingOSM(true)
+    setOsmError(null)
+    try {
+      // Om vi har användarens position, hämta nearby. Annars hämta för centrala Sverige
+      const lat = location?.latitude || 59.3
+      const lon = location?.longitude || 18.0
+      const radiusKm = location ? 50 : 100 // Mindre radie för snabbare hämtning
 
-        const data = await fetchOSMBoatRampsNearby(lat, lon, radiusKm)
-        setOsmRamps(data)
-      } catch (error) {
-        console.error('Failed to fetch OSM boat ramps:', error)
-      } finally {
-        setLoadingOSM(false)
-      }
+      console.log(`Fetching boat ramps near ${lat}, ${lon} with radius ${radiusKm}km`)
+      const data = await fetchOSMBoatRampsNearby(lat, lon, radiusKm)
+      console.log(`Found ${data.length} OSM boat ramps`)
+      setOsmRamps(data)
+    } catch (error) {
+      console.error('Failed to fetch OSM boat ramps:', error)
+      setOsmError(error instanceof Error ? error.message : 'Kunde inte hämta data från OpenStreetMap')
+    } finally {
+      setLoadingOSM(false)
     }
+  }
 
+  useEffect(() => {
     fetchOSMData()
   }, [location])
 
@@ -129,14 +134,26 @@ export function BoatRampsPage() {
           </button>
         </div>
 
-        <div className="mt-2 text-sm text-gray-600">
+        <div className="mt-2 text-sm">
           {loadingOSM ? (
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-gray-600">
               <Loader2 className="w-4 h-4 animate-spin" />
               Hämtar båtramper från OpenStreetMap...
             </span>
+          ) : osmError ? (
+            <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <span className="text-red-700">{osmError}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchOSMData}
+                className="ml-2"
+              >
+                Försök igen
+              </Button>
+            </div>
           ) : (
-            <span>
+            <span className="text-gray-600">
               Visar {boatRamps.length} användarramper + {osmRamps.length} från OpenStreetMap
             </span>
           )}

@@ -49,14 +49,20 @@ export async function fetchOSMBoatRamps(
   try {
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      body: query,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'data=' + encodeURIComponent(query),
     })
 
     if (!response.ok) {
-      throw new Error('Failed to fetch from Overpass API')
+      const errorText = await response.text()
+      console.error('Overpass API error:', errorText)
+      throw new Error(`Overpass API error: ${response.status} ${response.statusText}`)
     }
 
     const data: OverpassResponse = await response.json()
+    console.log('Overpass API response:', data)
 
     return data.elements.map((element) => {
       // För ways, använd center; för nodes, använd lat/lon
