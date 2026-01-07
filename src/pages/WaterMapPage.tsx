@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react'
-import { WaterMap } from '@/components/map/WaterMap'
+import { WaterMap, BoatRampMarker } from '@/components/map/WaterMap'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Search, MapPin, ExternalLink, Navigation, Fish, Map, Ticket, Waves } from 'lucide-react'
+import { Search, MapPin, ExternalLink, Navigation, Fish, Map, Ticket, Waves, Anchor, Plus, X, Loader2 } from 'lucide-react'
 import { usePublicCatches } from '@/hooks/usePublicCatches'
 import { useCatches } from '@/hooks/useCatches'
+import { useBoatRamps } from '@/hooks/useBoatRamps'
 import { useAuth } from '@/hooks/useAuth'
+import { useGeolocation } from '@/hooks/useGeolocation'
+import { fetchOSMBoatRampsNearby, OSMBoatRamp } from '@/lib/osm'
+import { BoatRampForm } from '@/components/boat-ramps/BoatRampForm'
 import { fishSpecies } from '@/data/fishSpecies'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -63,7 +67,7 @@ const POPULAR_WATERS = [
   { id: '44', name: 'Höga kusten', lat: 63.0, lon: 18.4, type: 'Kust' },
 ]
 
-type ViewMode = 'waters' | 'catches'
+type ViewMode = 'waters' | 'catches' | 'boat-ramps'
 
 export function WaterMapPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -73,10 +77,16 @@ export function WaterMapPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('catches')
   const [showDepthChart, setShowDepthChart] = useState(false)
   const [depthChartType, setDepthChartType] = useState<'nautical' | 'sonar'>('sonar')
+  const [showBoatRampForm, setShowBoatRampForm] = useState(false)
+  const [osmRamps, setOsmRamps] = useState<OSMBoatRamp[]>([])
+  const [loadingOSM, setLoadingOSM] = useState(false)
+  const [osmError, setOsmError] = useState<string | null>(null)
 
   const { catches: publicCatches } = usePublicCatches()
   const { catches: myCatches } = useCatches()
+  const { boatRamps, addBoatRamp } = useBoatRamps()
   const { isConfigured } = useAuth()
+  const { location } = useGeolocation()
   const navionicsAvailable = isNavionicsConfigured()
 
   const filteredWaters = POPULAR_WATERS.filter(w =>
@@ -99,6 +109,35 @@ export function WaterMapPage() {
 
   const openIniFiske = (name: string) => {
     window.open(`https://www.ifiske.se/index.php/fiskekortswebshop?search=${encodeURIComponent(name)}`, '_blank')
+  }
+
+  // Hämta OSM-båtramper
+  const fetchOSMData = async () => {
+    setLoadingOSM(true)
+    setOsmError(null)
+    try {
+      const lat = location?.latitude || 59.3
+      const lon = location?.longitude || 18.0
+      const radiusKm = 5
+
+      console.log(`Fetching boat ramps near ${lat}, ${lon} with radius ${radiusKm}km`)
+      const data = await fetchOSMBoatRampsNearby(lat, lon, radiusKm)
+      console.log(`Found ${data.length} OSM boat ramps`)
+      setOsmRamps(data)
+    } catch (error) {
+      console.error('Failed to fetch OSM boat ramps:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Kunde inte hämta data från OpenStreetMap'
+      setOsmError(`${errorMsg}. OpenStreetMap kan vara överbelastad just nu.`)
+    } finally {
+      setLoadingOSM(false)
+    }
+  }
+
+  const handleAddBoatRamp = async (data: Parameters<typeof addBoatRamp>[0]) => {
+    const result = await addBoatRamp(data)
+    if (result) {
+      setShowBoatRampForm(false)
+    }
   }
 
   // Kombinera mina och publika fångster, ta bort dubbletter
@@ -159,7 +198,32 @@ export function WaterMapPage() {
     }
   }
 
-  const displayMarkers = viewMode === 'catches' ? catchMarkers : waterMarkers
+  // Kombinera båtramper från användare och OSM
+  const allBoatRamps: BoatRampMarker[] = useMemo(() => [
+    // Användarens egna ramper
+    ...boatRamps.map(ramp => ({
+      id: ramp.id,
+      position: [ramp.latitude, ramp.longitude] as [number, number],
+      name: ramp.name,
+      waterName: ramp.waterName,
+      parking: ramp.parking,
+      fee: ramp.fee,
+      description: ramp.description || undefined,
+    })),
+    // OSM ramper
+    ...osmRamps.map(ramp => ({
+      id: `osm-${ramp.id}`,
+      position: [ramp.lat, ramp.lon] as [number, number],
+      name: ramp.tags.name || ramp.tags['name:sv'] || 'Båtramp',
+      waterName: undefined,
+      parking: undefined,
+      fee: ramp.tags.fee === 'yes',
+      description: ramp.tags.description,
+    })),
+  ], [boatRamps, osmRamps])
+
+  const displayMarkers = viewMode === 'catches' ? catchMarkers : viewMode === 'waters' ? waterMarkers : []
+  const displayBoatRamps = viewMode === 'boat-ramps' ? allBoatRamps : []
 
   return (
     <div className="h-full flex flex-col">
@@ -222,6 +286,17 @@ export function WaterMapPage() {
               <Map className="w-4 h-4" />
               Fiskevatten
             </button>
+            <button
+              onClick={() => setViewMode('boat-ramps')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                viewMode === 'boat-ramps'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Anchor className="w-4 h-4" />
+              Båtramper ({allBoatRamps.length})
+            </button>
           </div>
         )}
       </div>
@@ -232,6 +307,7 @@ export function WaterMapPage() {
           center={mapCenter}
           zoom={mapZoom}
           markers={displayMarkers}
+          boatRamps={displayBoatRamps}
           onMarkerClick={viewMode === 'waters' ? handleWaterMarkerClick : undefined}
           showDepthChart={showDepthChart}
           depthChartType={depthChartType}
@@ -347,6 +423,76 @@ export function WaterMapPage() {
               <p className="text-gray-500 text-sm">Inga fångster med platsdata ännu</p>
               <p className="text-gray-400 text-xs mt-1">Registrera fångster med GPS för att se dem på kartan</p>
             </Card>
+          </div>
+        )}
+
+        {/* Panel för båtramper */}
+        {viewMode === 'boat-ramps' && (
+          <div className="absolute bottom-4 left-4 right-4 z-10">
+            {showBoatRampForm ? (
+              <Card>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold">Lägg till båtramp</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowBoatRampForm(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <BoatRampForm
+                  onSubmit={handleAddBoatRamp}
+                  onCancel={() => setShowBoatRampForm(false)}
+                />
+              </Card>
+            ) : (
+              <Card>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold text-sm">Båtramper</h3>
+                    <p className="text-xs text-gray-500">
+                      {boatRamps.length} användarramper + {osmRamps.length} från OSM
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowBoatRampForm(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Lägg till
+                  </Button>
+                </div>
+                {loadingOSM ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Hämtar från OpenStreetMap...
+                  </div>
+                ) : osmError ? (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    {osmError}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchOSMData}
+                      className="mt-2 w-full"
+                    >
+                      Försök igen
+                    </Button>
+                  </div>
+                ) : osmRamps.length === 0 ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchOSMData}
+                    className="w-full mt-2"
+                  >
+                    Ladda OSM-data (5km radie)
+                  </Button>
+                ) : null}
+              </Card>
+            )}
           </div>
         )}
       </div>
