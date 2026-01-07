@@ -10,9 +10,11 @@ interface CatchListProps {
   catches: Catch[]
   onDelete?: (id: string) => void
   loading?: boolean
+  showOwner?: boolean
+  isOwnCatch?: (userId: string) => boolean
 }
 
-export function CatchList({ catches, onDelete, loading }: CatchListProps) {
+export function CatchList({ catches, onDelete, loading, showOwner, isOwnCatch }: CatchListProps) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -67,6 +69,11 @@ export function CatchList({ catches, onDelete, loading }: CatchListProps) {
 
                   <p className="text-sm text-gray-500">
                     {format(new Date(c.caughtAt), "d MMMM yyyy 'kl.' HH:mm", { locale: sv })}
+                    {showOwner && (
+                      <span className="ml-2 text-gray-400">
+                        • {isOwnCatch?.(c.userId) ? 'Din fångst' : 'Annan fiskare'}
+                      </span>
+                    )}
                   </p>
 
                   <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-600">

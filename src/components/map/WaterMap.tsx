@@ -24,6 +24,7 @@ interface MapMarker {
   position: [number, number]
   title: string
   description?: string
+  popupHtml?: string
 }
 
 interface WaterMapProps {
@@ -80,9 +81,12 @@ export function WaterMap({
 
     // Lägg till nya markers
     markers.forEach((marker) => {
+      const popupContent = marker.popupHtml ||
+        `<b>${marker.title}</b>${marker.description ? `<br/>${marker.description}` : ''}`
+
       const m = L.marker(marker.position)
         .addTo(mapRef.current!)
-        .bindPopup(`<b>${marker.title}</b>${marker.description ? `<br/>${marker.description}` : ''}`)
+        .bindPopup(popupContent, { maxWidth: 300 })
 
       if (onMarkerClick) {
         m.on('click', () => onMarkerClick(marker.id))
