@@ -7,7 +7,7 @@ import { SpeciesSelect } from './SpeciesSelect'
 import { WeatherDisplay } from '@/components/weather/WeatherDisplay'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useWeather } from '@/hooks/useWeather'
-import { MapPin, Loader2, Camera, X } from 'lucide-react'
+import { MapPin, Loader2, Camera, ImagePlus, X } from 'lucide-react'
 
 interface CatchFormProps {
   onSubmit: (data: CatchFormData, weather?: WeatherData) => Promise<void>
@@ -18,7 +18,8 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
   const [loading, setLoading] = useState(false)
   const { location, loading: geoLoading, refresh: refreshLocation } = useGeolocation()
   const { weather, loading: weatherLoading, refresh: refreshWeather } = useWeather()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<CatchFormData>({
@@ -81,9 +82,8 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
   const handleRemoveImage = () => {
     setFormData(prev => ({ ...prev, photo: null }))
     setImagePreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (galleryInputRef.current) galleryInputRef.current.value = ''
   }
 
   const validate = (): boolean => {
@@ -167,11 +167,20 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Foto
         </label>
+        {/* Kamera-input */}
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        {/* Galleri-input */}
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
           onChange={handleImageSelect}
           className="hidden"
         />
@@ -186,20 +195,30 @@ export function CatchForm({ onSubmit, onCancel }: CatchFormProps) {
             <button
               type="button"
               onClick={handleRemoveImage}
-              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 active:bg-red-700"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors"
-          >
-            <Camera className="w-8 h-8" />
-            <span className="text-sm">Lägg till foto</span>
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-blue-500 hover:text-blue-500 active:bg-blue-50 transition-colors"
+            >
+              <Camera className="w-10 h-10" />
+              <span className="text-sm font-medium">Ta foto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              className="h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-blue-500 hover:text-blue-500 active:bg-blue-50 transition-colors"
+            >
+              <ImagePlus className="w-10 h-10" />
+              <span className="text-sm font-medium">Välj bild</span>
+            </button>
+          </div>
         )}
       </div>
 
