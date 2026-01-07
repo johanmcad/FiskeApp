@@ -139,6 +139,11 @@ export function WaterMapPage() {
     }
   }
 
+  const handleMapMove = (center: [number, number], zoom: number) => {
+    setMapCenter(center)
+    setMapZoom(zoom)
+  }
+
   // Kombinera mina och publika fångster, ta bort dubbletter
   const allCatches = useMemo(() => {
     const publicIds = new Set(publicCatches.map(c => c.id))
@@ -308,6 +313,7 @@ export function WaterMapPage() {
           markers={displayMarkers}
           boatRamps={displayBoatRamps}
           onMarkerClick={viewMode === 'waters' ? handleWaterMarkerClick : undefined}
+          onMapMove={handleMapMove}
           showDepthChart={showDepthChart}
           depthChartType={depthChartType}
           className="h-full"

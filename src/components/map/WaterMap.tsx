@@ -59,6 +59,7 @@ interface WaterMapProps {
   boatRamps?: BoatRampMarker[]
   onMarkerClick?: (id: string) => void
   onBoatRampClick?: (id: string) => void
+  onMapMove?: (center: [number, number], zoom: number) => void
   className?: string
   showDepthChart?: boolean
   depthChartType?: 'nautical' | 'sonar'
@@ -71,6 +72,7 @@ export function WaterMap({
   boatRamps = [],
   onMarkerClick,
   onBoatRampClick,
+  onMapMove,
   className = '',
   showDepthChart = false,
   depthChartType = 'sonar',
@@ -107,6 +109,25 @@ export function WaterMap({
       mapRef.current.setView(center, zoom)
     }
   }, [center, zoom])
+
+  // Lyssna på kartans förflyttning och zoom
+  useEffect(() => {
+    if (!mapRef.current || !onMapMove) return
+
+    const handleMoveEnd = () => {
+      if (mapRef.current) {
+        const center = mapRef.current.getCenter()
+        const zoom = mapRef.current.getZoom()
+        onMapMove([center.lat, center.lng], zoom)
+      }
+    }
+
+    mapRef.current.on('moveend', handleMoveEnd)
+
+    return () => {
+      mapRef.current?.off('moveend', handleMoveEnd)
+    }
+  }, [onMapMove])
 
   // Hantera djupkarta
   useEffect(() => {
