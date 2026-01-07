@@ -38,7 +38,7 @@ export async function fetchOSMBoatRamps(
 
   // Overpass API query för att hämta slipways (båtramper)
   const query = `
-    [out:json][timeout:10];
+    [out:json][timeout:5];
     (
       node["leisure"="slipway"](${south},${west},${north},${east});
       way["leisure"="slipway"](${south},${west},${north},${east});
@@ -49,7 +49,7 @@ export async function fetchOSMBoatRamps(
   try {
     // Skapa en AbortController för fetch timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 sekunder timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 sekunder timeout
 
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',

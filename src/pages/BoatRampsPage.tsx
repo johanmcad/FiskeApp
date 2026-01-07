@@ -27,7 +27,7 @@ export function BoatRampsPage() {
       // Använd en mycket mindre radie för att undvika timeout
       const lat = location?.latitude || 59.3
       const lon = location?.longitude || 18.0
-      const radiusKm = 20 // Mycket mindre radie för snabbare hämtning
+      const radiusKm = 5 // Extremt liten radie för att undvika timeout
 
       console.log(`Fetching boat ramps near ${lat}, ${lon} with radius ${radiusKm}km`)
       const data = await fetchOSMBoatRampsNearby(lat, lon, radiusKm)
@@ -35,7 +35,8 @@ export function BoatRampsPage() {
       setOsmRamps(data)
     } catch (error) {
       console.error('Failed to fetch OSM boat ramps:', error)
-      setOsmError(error instanceof Error ? error.message : 'Kunde inte hämta data från OpenStreetMap')
+      const errorMsg = error instanceof Error ? error.message : 'Kunde inte hämta data från OpenStreetMap'
+      setOsmError(`${errorMsg}. OpenStreetMap kan vara överbelastad just nu. Använd "Lägg till" för att registrera egna ramper.`)
     } finally {
       setLoadingOSM(false)
     }
@@ -75,11 +76,14 @@ export function BoatRampsPage() {
   ]
 
   // Beräkna kartcenter baserat på användarens position eller Sverige
-  const mapCenter: [number, number] = location
+  // Om vi har OSM-ramper, centrera på första rampen istället
+  const mapCenter: [number, number] = osmRamps.length > 0
+    ? [osmRamps[0].lat, osmRamps[0].lon]
+    : location
     ? [location.latitude, location.longitude]
-    : [62.5, 17.5]
+    : [59.3, 18.0] // Stockholm som standard
 
-  const mapZoom = location ? 10 : 5
+  const mapZoom = osmRamps.length > 0 || location ? 10 : 6
 
   return (
     <div className="h-full flex flex-col">
@@ -155,18 +159,25 @@ export function BoatRampsPage() {
               Visar {boatRamps.length} användarramper + {osmRamps.length} från OpenStreetMap
             </span>
           ) : (
-            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-              <span className="text-sm text-gray-700">
-                Ladda båtramper från OpenStreetMap i närområdet (20km radie)
-              </span>
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={fetchOSMData}
-                className="ml-2"
-              >
-                Ladda OSM-data
-              </Button>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <span className="text-sm text-gray-700">
+                  Ladda båtramper från OpenStreetMap (5km radie)
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchOSMData}
+                  className="ml-2"
+                >
+                  Ladda OSM
+                </Button>
+              </div>
+              {boatRamps.length === 0 && (
+                <p className="text-xs text-gray-500">
+                  💡 Tips: Klicka på "+ Lägg till" för att registrera båtramper du känner till
+                </p>
+              )}
             </div>
           )}
         </div>
