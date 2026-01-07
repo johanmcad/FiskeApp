@@ -138,13 +138,22 @@ export function WaterMapPage() {
       })
   }, [allCatches])
 
-  // Markörer för vatten
-  const waterMarkers = selectedWater ? [{
-    id: selectedWater.id,
-    position: [selectedWater.lat, selectedWater.lon] as [number, number],
-    title: selectedWater.name,
-    description: selectedWater.type,
-  }] : []
+  // Markörer för alla fiskevatten
+  const waterMarkers = useMemo(() => {
+    return POPULAR_WATERS.map(water => ({
+      id: water.id,
+      position: [water.lat, water.lon] as [number, number],
+      title: water.name,
+      description: water.type,
+    }))
+  }, [])
+
+  const handleWaterMarkerClick = (id: string) => {
+    const water = POPULAR_WATERS.find(w => w.id === id)
+    if (water) {
+      setSelectedWater(water)
+    }
+  }
 
   const displayMarkers = viewMode === 'catches' ? catchMarkers : waterMarkers
 
@@ -219,6 +228,7 @@ export function WaterMapPage() {
           center={mapCenter}
           zoom={mapZoom}
           markers={displayMarkers}
+          onMarkerClick={viewMode === 'waters' ? handleWaterMarkerClick : undefined}
           className="h-full"
         />
 
