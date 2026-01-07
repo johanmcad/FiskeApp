@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { WaterMap, BoatRampMarker } from '@/components/map/WaterMap'
@@ -19,15 +19,15 @@ export function BoatRampsPage() {
   const { boatRamps, loading, addBoatRamp } = useBoatRamps()
   const { location } = useGeolocation()
 
-  // Hämta OSM-båtramper när komponenten laddas
+  // Hämta OSM-båtramper manuellt
   const fetchOSMData = async () => {
     setLoadingOSM(true)
     setOsmError(null)
     try {
-      // Om vi har användarens position, hämta nearby. Annars hämta för centrala Sverige
+      // Använd en mycket mindre radie för att undvika timeout
       const lat = location?.latitude || 59.3
       const lon = location?.longitude || 18.0
-      const radiusKm = location ? 50 : 100 // Mindre radie för snabbare hämtning
+      const radiusKm = 20 // Mycket mindre radie för snabbare hämtning
 
       console.log(`Fetching boat ramps near ${lat}, ${lon} with radius ${radiusKm}km`)
       const data = await fetchOSMBoatRampsNearby(lat, lon, radiusKm)
@@ -41,9 +41,7 @@ export function BoatRampsPage() {
     }
   }
 
-  useEffect(() => {
-    fetchOSMData()
-  }, [location])
+  // Hämta inte automatiskt längre - låt användaren välja när
 
   const handleSubmit = async (data: Parameters<typeof addBoatRamp>[0]) => {
     const result = await addBoatRamp(data)
@@ -134,15 +132,15 @@ export function BoatRampsPage() {
           </button>
         </div>
 
-        <div className="mt-2 text-sm">
+        <div className="mt-2">
           {loadingOSM ? (
-            <span className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
               <Loader2 className="w-4 h-4 animate-spin" />
               Hämtar båtramper från OpenStreetMap...
-            </span>
+            </div>
           ) : osmError ? (
             <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              <span className="text-red-700">{osmError}</span>
+              <span className="text-sm text-red-700">{osmError}</span>
               <Button
                 size="sm"
                 variant="outline"
@@ -152,10 +150,24 @@ export function BoatRampsPage() {
                 Försök igen
               </Button>
             </div>
-          ) : (
-            <span className="text-gray-600">
+          ) : osmRamps.length > 0 ? (
+            <span className="text-sm text-gray-600">
               Visar {boatRamps.length} användarramper + {osmRamps.length} från OpenStreetMap
             </span>
+          ) : (
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+              <span className="text-sm text-gray-700">
+                Ladda båtramper från OpenStreetMap i närområdet (20km radie)
+              </span>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={fetchOSMData}
+                className="ml-2"
+              >
+                Ladda OSM-data
+              </Button>
+            </div>
           )}
         </div>
       </div>

@@ -38,7 +38,7 @@ export async function fetchOSMBoatRamps(
 
   // Overpass API query för att hämta slipways (båtramper)
   const query = `
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       node["leisure"="slipway"](${south},${west},${north},${east});
       way["leisure"="slipway"](${south},${west},${north},${east});
@@ -47,13 +47,20 @@ export async function fetchOSMBoatRamps(
   `
 
   try {
+    // Skapa en AbortController för fetch timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 sekunder timeout
+
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: 'data=' + encodeURIComponent(query),
+      signal: controller.signal,
     })
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -78,6 +85,12 @@ export async function fetchOSMBoatRamps(
     })
   } catch (error) {
     console.error('Error fetching OSM boat ramps:', error)
+
+    // Hantera timeout specifikt
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Timeout: Försök med mindre område eller försök igen senare')
+    }
+
     throw error
   }
 }
