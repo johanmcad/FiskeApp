@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { SpeciesSelect } from './SpeciesSelect'
 import { WeatherDisplay } from '@/components/weather/WeatherDisplay'
+import { LocationPicker } from '@/components/map/LocationPicker'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useWeather } from '@/hooks/useWeather'
-import { MapPin, Loader2, Camera, ImagePlus, X } from 'lucide-react'
+import { MapPin, Loader2, Camera, ImagePlus, X, Map } from 'lucide-react'
 
 interface CatchFormProps {
   onSubmit: (data: CatchFormData, weather?: WeatherData) => Promise<void>
@@ -17,6 +18,7 @@ interface CatchFormProps {
 
 export function CatchForm({ onSubmit, onCancel, initialData }: CatchFormProps) {
   const [loading, setLoading] = useState(false)
+  const [showMap, setShowMap] = useState(false)
   const { location, loading: geoLoading, refresh: refreshLocation } = useGeolocation()
   const { weather, loading: weatherLoading, refresh: refreshWeather } = useWeather()
   const cameraInputRef = useRef<HTMLInputElement>(null)
@@ -53,6 +55,16 @@ export function CatchForm({ onSubmit, onCancel, initialData }: CatchFormProps) {
 
   const handleGetLocation = async () => {
     await refreshLocation()
+  }
+
+  const handleLocationChange = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+    }))
+    // Hämta väder för den nya platsen
+    refreshWeather(lat, lng)
   }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,22 +239,33 @@ export function CatchForm({ onSubmit, onCancel, initialData }: CatchFormProps) {
       <Card padding="sm" className="bg-gray-50">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Position</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleGetLocation}
-            disabled={geoLoading}
-          >
-            {geoLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <MapPin className="w-4 h-4 mr-1" />
-                Hämta
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGetLocation}
+              disabled={geoLoading}
+            >
+              {geoLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 mr-1" />
+                  GPS
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant={showMap ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setShowMap(!showMap)}
+            >
+              <Map className="w-4 h-4 mr-1" />
+              Karta
+            </Button>
+          </div>
         </div>
         {formData.latitude && formData.longitude ? (
           <p className="text-sm text-gray-600">
@@ -252,6 +275,15 @@ export function CatchForm({ onSubmit, onCancel, initialData }: CatchFormProps) {
           <p className="text-sm text-gray-400">Ingen position angiven</p>
         )}
       </Card>
+
+      {/* Kartväljare */}
+      {showMap && (
+        <LocationPicker
+          latitude={formData.latitude}
+          longitude={formData.longitude}
+          onLocationChange={handleLocationChange}
+        />
+      )}
 
       {/* Väder */}
       {(weather || weatherLoading) && (
